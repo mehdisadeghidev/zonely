@@ -8,7 +8,7 @@ function deferred() {
 
 function backgroundContext(options = {}) {
   const data = options.data || {
-    sync: {settings:{excludedDomains:[], whitelistDomains:[], siteRules:{}, defaultMode:'auto'}},
+    sync: {settings:{defaultMode:'auto', defaultTimezone:'', excludedDomains:[], siteRules:{}}},
     local: {timezone:'Europe/Berlin'}, session: {}
   };
   const listeners = {};

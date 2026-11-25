@@ -8,7 +8,8 @@ test('all settings write paths reject invalid fixed timezones without changing s
     for(const msg of [
       {action:'tzc:set-site-rule',pattern:'example.com',rule:{mode:'fixed',timezone}},
       {action:'tzc:set-tab-rule',tabId:1,mode:'fixed',timezone},
-      {action:'tzc:update-settings',settings:{siteRules:{'example.com':{mode:'fixed',timezone}}}}
+      {action:'tzc:update-settings',settings:{siteRules:{'example.com':{mode:'fixed',timezone}}}},
+      {action:'tzc:update-settings',settings:{defaultMode:'fixed',defaultTimezone:timezone}}
     ]) {
       const before=JSON.stringify(bg.data);
       const result=await bg.message(msg);
@@ -68,21 +69,27 @@ test('storage failure returns an actionable error response', async () => {
   assert.equal(result.error,'storage-error');
 });
 
-test('exclusion/whitelist decisions precede site rules, while tab override wins', async () => {
+test('site rules outrank exclusions, while a tab override wins over both', async () => {
   const bg=backgroundContext();
   const settings=bg.data.sync.settings;
-  settings.excludedDomains=['excluded.example'];
-  settings.whitelistDomains=['allowed.example'];
-  settings.siteRules={
-    'excluded.example':{mode:'fixed',timezone:'Asia/Tokyo'},
-    'outside.example':{mode:'fixed',timezone:'Asia/Tokyo'},
-    '*':{mode:'disable'},'allowed.example':{mode:'fixed',timezone:'UTC'}
-  };
-  assert.equal((await bg.run('getPageConfig(1,"excluded.example")')).source,'excluded');
-  assert.equal((await bg.run('getPageConfig(2,"outside.example")')).source,'whitelist');
-  assert.equal((await bg.run('getPageConfig(3,"allowed.example")')).timezone,'UTC');
-  await bg.message({action:'tzc:set-tab-rule',tabId:1,mode:'fixed',timezone:'Asia/Tokyo'});
+  settings.excludedDomains=['excluded.example','plain.example'];
+  settings.siteRules={'excluded.example':{mode:'fixed',timezone:'Asia/Tokyo'}};
+  assert.equal((await bg.run('getPageConfig(1,"excluded.example")')).source,'siteRule');
   assert.equal((await bg.run('getPageConfig(1,"excluded.example")')).timezone,'Asia/Tokyo');
+  assert.equal((await bg.run('getPageConfig(2,"plain.example")')).source,'excluded');
+  await bg.message({action:'tzc:set-tab-rule',tabId:2,mode:'fixed',timezone:'UTC'});
+  assert.equal((await bg.run('getPageConfig(2,"plain.example")')).timezone,'UTC');
+});
+
+test('default mode can fix a timezone and still yields to site rules', async () => {
+  const bg=backgroundContext();
+  bg.data.sync.settings={defaultMode:'fixed',defaultTimezone:'Asia/Tokyo',excludedDomains:[],siteRules:{}};
+  const config=await bg.run('getPageConfig(1,"example.com")');
+  assert.equal(config.source,'default');
+  assert.equal(config.timezone,'Asia/Tokyo');
+  bg.data.sync.settings.siteRules={'example.com':{mode:'disable',timezone:''}};
+  const restarted=backgroundContext({data:bg.data});
+  assert.equal((await restarted.run('getPageConfig(2,"example.com")')).shouldSpoof,false);
 });
 
 test('wildcards do not include the apex domain and default protection is retained', () => {

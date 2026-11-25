@@ -63,26 +63,15 @@ export function createOptions({ document: doc, chrome: api }: OptionsEnv = { doc
     if (!settings) return;
 
     const excludeList = $("exclude-list");
-    const whitelistList = $("whitelist-list");
     const rulesList = $("rules-list");
     excludeList.replaceChildren();
-    whitelistList.replaceChildren();
     rulesList.replaceChildren();
+    renderDefault(settings);
 
     for (const pattern of settings.excludedDomains) {
       excludeList.append(
         createListItem(pattern, async () => {
           settings.excludedDomains = settings.excludedDomains.filter((entry) => entry !== pattern);
-          await saveSettings(settings);
-          await render();
-        })
-      );
-    }
-
-    for (const pattern of settings.whitelistDomains) {
-      whitelistList.append(
-        createListItem(pattern, async () => {
-          settings.whitelistDomains = settings.whitelistDomains.filter((entry) => entry !== pattern);
           await saveSettings(settings);
           await render();
         })
@@ -101,14 +90,36 @@ export function createOptions({ document: doc, chrome: api }: OptionsEnv = { doc
     }
   }
 
-  function addPattern(inputId: string, list: "excludedDomains" | "whitelistDomains"): () => Promise<void> {
+  function renderDefault(settings: Settings): void {
+    $<HTMLSelectElement>("default-mode").value = settings.defaultMode;
+    $<HTMLInputElement>("default-timezone").value = settings.defaultTimezone;
+    toggleDefaultTimezone();
+  }
+
+  function toggleDefaultTimezone(): void {
+    const fixed = $<HTMLSelectElement>("default-mode").value === "fixed";
+    $<HTMLInputElement>("default-timezone").hidden = !fixed;
+    $("default-timezone-label").hidden = !fixed;
+  }
+
+  async function saveDefault(): Promise<void> {
+    const settings = await loadSettings();
+    if (!settings) return;
+    const mode = $<HTMLSelectElement>("default-mode").value as RuleMode;
+    settings.defaultMode = mode;
+    settings.defaultTimezone = mode === "fixed" ? $<HTMLInputElement>("default-timezone").value.trim() : "";
+    await saveSettings(settings);
+    $("status-message").textContent = "Saved. Reload affected pages to apply.";
+  }
+
+  function addExcludedPattern(): () => Promise<void> {
     return async () => {
-      const input = $<HTMLInputElement>(inputId);
+      const input = $<HTMLInputElement>("exclude-input");
       const value = input.value.trim().toLowerCase();
       if (!value) return;
       const settings = await loadSettings();
       if (!settings) return;
-      if (!settings[list].includes(value)) settings[list].push(value);
+      if (!settings.excludedDomains.includes(value)) settings.excludedDomains.push(value);
       await saveSettings(settings);
       input.value = "";
       await render();
@@ -121,8 +132,14 @@ export function createOptions({ document: doc, chrome: api }: OptionsEnv = { doc
   }
 
   function start(): void {
-    onAction("add-exclude-btn", addPattern("exclude-input", "excludedDomains"));
-    onAction("add-whitelist-btn", addPattern("whitelist-input", "whitelistDomains"));
+    onAction("add-exclude-btn", addExcludedPattern());
+    $<HTMLSelectElement>("default-mode").addEventListener("change", () => {
+      toggleDefaultTimezone();
+      saveDefault().catch((error) => showError(error as Error));
+    });
+    $<HTMLInputElement>("default-timezone").addEventListener("change", () => {
+      saveDefault().catch((error) => showError(error as Error));
+    });
     onAction("add-rule-btn", async () => {
       const patterns = splitPatterns($<HTMLInputElement>("rule-pattern").value);
       const mode = $<HTMLSelectElement>("rule-mode").value as RuleMode;

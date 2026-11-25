@@ -11,7 +11,6 @@ const SOURCE_LABELS: Record<string, string> = {
   tabOverride: "Tab override",
   siteRule: "Site rule",
   excluded: "Excluded site",
-  whitelist: "Outside whitelist",
   default: "Default policy"
 };
 const ERRORS: Record<string, string> = {
@@ -66,7 +65,6 @@ export function createPopup({ document: doc, chrome: api }: PopupEnv = { documen
     if (currentScope === "site") {
       if (pageStatus?.tabOverride) hint += " A tab override currently takes priority over site rules.";
       else if (pageStatus?.source === "excluded") hint += " An exclusion takes priority; manage it in All rules and exclusions.";
-      else if (pageStatus?.source === "whitelist") hint += " This site is outside the whitelist; manage it in All rules and exclusions.";
     }
     $("scope-hint").textContent = canEditRules() ? hint : "Open an HTTP or HTTPS web page to edit its rule.";
     toggleTimezoneInput();

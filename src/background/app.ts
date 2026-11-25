@@ -50,6 +50,7 @@ export function createBackground(api: ChromeApi, options: RuntimeServiceOptions 
   }
 
   async function updateSettings(next: Partial<Settings>): Promise<{ ok: boolean; error?: string; settings?: Settings }> {
+    if (next?.defaultMode === "fixed" && !isValidTimezone(String(next.defaultTimezone || "").trim())) return { ok: false, error: "invalid-timezone" };
     if (Object.values(next?.siteRules || {}).some(invalidFixedRule)) return { ok: false, error: "invalid-timezone" };
     return { ok: true, settings: await settingsStore.mutate(() => sanitizeSettings(next || {})) };
   }

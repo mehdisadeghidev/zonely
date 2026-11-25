@@ -6,15 +6,15 @@ export interface SiteRule {
 }
 
 export interface Settings {
-  defaultMode: "auto" | "disable";
+  defaultMode: RuleMode;
+  defaultTimezone: string;
   excludedDomains: string[];
-  whitelistDomains: string[];
   siteRules: Record<string, SiteRule>;
 }
 
 export interface Behavior {
   mode: RuleMode;
-  source: "excluded" | "whitelist" | "siteRule" | "default";
+  source: "excluded" | "siteRule" | "default";
   timezone?: string;
   pattern?: string;
 }
@@ -30,8 +30,8 @@ export const DEFAULT_EXCLUDED_DOMAINS = [
 
 export const DEFAULT_SETTINGS: Settings = {
   defaultMode: "auto",
+  defaultTimezone: "",
   excludedDomains: DEFAULT_EXCLUDED_DOMAINS,
-  whitelistDomains: [],
   siteRules: {}
 };
 
@@ -75,24 +75,20 @@ export function resolveHostnameBehavior(hostname: string, settings: Partial<Sett
     ...DEFAULT_SETTINGS,
     ...(settings || {}),
     excludedDomains: Array.isArray(settings?.excludedDomains) ? settings.excludedDomains : DEFAULT_SETTINGS.excludedDomains,
-    whitelistDomains: Array.isArray(settings?.whitelistDomains) ? settings.whitelistDomains : [],
     siteRules: settings?.siteRules && typeof settings.siteRules === "object" ? settings.siteRules : {}
   };
 
-  if (safe.excludedDomains.some((pattern) => matchesPattern(hostname, pattern))) {
-    return { mode: "disable", source: "excluded" };
-  }
-
-  if (safe.whitelistDomains.length > 0 && !safe.whitelistDomains.some((pattern) => matchesPattern(hostname, pattern))) {
-    return { mode: "disable", source: "whitelist" };
-  }
-
+  // A site rule is an explicit decision for this host, so it outranks exclusions.
   const { pattern, rule } = findBestRule(hostname, safe.siteRules);
   if (rule && typeof rule === "object") {
     return { mode: rule.mode || "auto", timezone: rule.timezone || "", source: "siteRule", pattern: pattern ?? undefined };
   }
 
-  return { mode: safe.defaultMode || "auto", source: "default" };
+  if (safe.excludedDomains.some((excluded) => matchesPattern(hostname, excluded))) {
+    return { mode: "disable", source: "excluded" };
+  }
+
+  return { mode: safe.defaultMode || "auto", timezone: safe.defaultTimezone || "", source: "default" };
 }
 
 function toStringList(value: unknown, fallback: string[]): string[] {
@@ -100,14 +96,17 @@ function toStringList(value: unknown, fallback: string[]): string[] {
 }
 
 export function sanitizeSettings(raw: unknown): Settings {
-  const input = (raw && typeof raw === "object" ? raw : {}) as Partial<Settings>;
+  const input = (raw && typeof raw === "object" ? raw : {}) as Partial<Settings> & { defaultTimezone?: unknown };
+  const requestedMode = input.defaultMode;
+  const mode: RuleMode = requestedMode === "disable" || requestedMode === "fixed" ? requestedMode : "auto";
+  // Legacy storage can hold a fixed default without a usable zone; fall back to auto.
+  const defaultTimezone = String(input.defaultTimezone ?? "").trim();
+  const fixedDefault = mode === "fixed" && isValidTimezone(defaultTimezone);
   const safe: Settings = {
-    ...DEFAULT_SETTINGS,
-    ...input,
+    defaultMode: fixedDefault ? "fixed" : mode === "fixed" ? "auto" : mode,
+    defaultTimezone: fixedDefault ? defaultTimezone : "",
     excludedDomains: toStringList(input.excludedDomains, DEFAULT_SETTINGS.excludedDomains),
-    whitelistDomains: toStringList(input.whitelistDomains, []),
-    siteRules: {},
-    defaultMode: input.defaultMode === "disable" ? "disable" : "auto"
+    siteRules: {}
   };
 
   if (input.siteRules && typeof input.siteRules === "object") {

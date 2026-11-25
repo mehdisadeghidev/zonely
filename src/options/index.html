@@ -11,8 +11,21 @@
     <p id="status-message" role="status" aria-live="polite"></p>
 
     <section class="card">
+      <h2>Default behavior</h2>
+      <p class="hint">What Zonely does on any site that has no rule of its own. Exclusions and per-site rules below always take priority.</p>
+      <label class="field-label" for="default-mode">Mode</label>
+      <select id="default-mode">
+        <option value="auto">Auto by IP</option>
+        <option value="fixed">Fixed timezone</option>
+        <option value="disable">Do not spoof</option>
+      </select>
+      <label id="default-timezone-label" class="field-label" for="default-timezone" hidden>Timezone</label>
+      <input id="default-timezone" type="text" placeholder="Europe/Berlin" hidden>
+    </section>
+
+    <section class="card">
       <h2>Excluded Sites</h2>
-      <p class="hint">On excluded domains spoofing is fully disabled and system timezone is used.</p>
+      <p class="hint">Spoofing is disabled here and the system timezone is used, unless the site has its own rule below.</p>
       <div class="row">
         <input id="exclude-input" type="text" placeholder="*.example.com or app.example.com">
         <button id="add-exclude-btn">Add</button>
@@ -21,18 +34,8 @@
     </section>
 
     <section class="card">
-      <h2>Whitelist</h2>
-      <p class="hint">If whitelist is not empty, spoofing works only for domains listed here.</p>
-      <div class="row">
-        <input id="whitelist-input" type="text" placeholder="*.allowed-site.com">
-        <button id="add-whitelist-btn">Add</button>
-      </div>
-      <ul id="whitelist-list" class="list"></ul>
-    </section>
-
-    <section class="card">
       <h2>Per-site Rules</h2>
-      <p class="hint">Mode priority: Tab rule &gt; Exclusions/Whitelist &gt; Site rule &gt; Default. Reload affected pages after saving.</p>
+      <p class="hint">Mode priority: Tab rule &gt; Site rule &gt; Exclusion &gt; Default. Comma separate several patterns. Reload affected pages after saving.</p>
       <div class="row">
         <input id="rule-pattern" type="text" placeholder="example.com, *.example.com">
         <select id="rule-mode">
