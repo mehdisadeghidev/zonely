@@ -20,7 +20,7 @@
         <option value="disable">Do not spoof</option>
       </select>
       <label id="default-timezone-label" class="field-label" for="default-timezone" hidden>Timezone</label>
-      <input id="default-timezone" type="text" placeholder="Europe/Berlin" hidden>
+      <select id="default-timezone" hidden></select>
     </section>
 
     <section class="card">
@@ -43,7 +43,7 @@
           <option value="disable">Do not spoof</option>
           <option value="fixed">Fixed timezone</option>
         </select>
-        <input id="rule-timezone" type="text" placeholder="America/Los_Angeles">
+        <select id="rule-timezone" aria-label="Timezone"></select>
         <button id="add-rule-btn">Save</button>
       </div>
       <ul id="rules-list" class="list"></ul>

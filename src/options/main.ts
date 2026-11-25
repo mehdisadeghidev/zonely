@@ -1,5 +1,6 @@
 import { ACTIONS, type SettingsPayload } from "../shared/protocol.ts";
 import { createMessenger } from "../shared/messaging.ts";
+import { fillTimezoneSelect } from "../shared/timezones.ts";
 import type { RuleMode, Settings } from "../shared/settings.ts";
 
 interface OptionsEnv {
@@ -92,13 +93,13 @@ export function createOptions({ document: doc, chrome: api }: OptionsEnv = { doc
 
   function renderDefault(settings: Settings): void {
     $<HTMLSelectElement>("default-mode").value = settings.defaultMode;
-    $<HTMLInputElement>("default-timezone").value = settings.defaultTimezone;
+    fillTimezoneSelect(doc, $<HTMLSelectElement>("default-timezone"), settings.defaultTimezone);
     toggleDefaultTimezone();
   }
 
   function toggleDefaultTimezone(): void {
     const fixed = $<HTMLSelectElement>("default-mode").value === "fixed";
-    $<HTMLInputElement>("default-timezone").hidden = !fixed;
+    $<HTMLSelectElement>("default-timezone").hidden = !fixed;
     $("default-timezone-label").hidden = !fixed;
   }
 
@@ -107,7 +108,7 @@ export function createOptions({ document: doc, chrome: api }: OptionsEnv = { doc
     if (!settings) return;
     const mode = $<HTMLSelectElement>("default-mode").value as RuleMode;
     settings.defaultMode = mode;
-    settings.defaultTimezone = mode === "fixed" ? $<HTMLInputElement>("default-timezone").value.trim() : "";
+    settings.defaultTimezone = mode === "fixed" ? $<HTMLSelectElement>("default-timezone").value : "";
     await saveSettings(settings);
     $("status-message").textContent = "Saved. Reload affected pages to apply.";
   }
@@ -137,13 +138,14 @@ export function createOptions({ document: doc, chrome: api }: OptionsEnv = { doc
       toggleDefaultTimezone();
       saveDefault().catch((error) => showError(error as Error));
     });
-    $<HTMLInputElement>("default-timezone").addEventListener("change", () => {
+    $<HTMLSelectElement>("default-timezone").addEventListener("change", () => {
       saveDefault().catch((error) => showError(error as Error));
     });
+    fillTimezoneSelect(doc, $<HTMLSelectElement>("rule-timezone"));
     onAction("add-rule-btn", async () => {
       const patterns = splitPatterns($<HTMLInputElement>("rule-pattern").value);
       const mode = $<HTMLSelectElement>("rule-mode").value as RuleMode;
-      const timezone = $<HTMLInputElement>("rule-timezone").value.trim();
+      const timezone = $<HTMLSelectElement>("rule-timezone").value;
       if (!patterns.length) return;
 
       const settings = await loadSettings();
@@ -152,7 +154,7 @@ export function createOptions({ document: doc, chrome: api }: OptionsEnv = { doc
 
       await saveSettings(settings);
       $<HTMLInputElement>("rule-pattern").value = "";
-      $<HTMLInputElement>("rule-timezone").value = "";
+      $<HTMLSelectElement>("rule-timezone").value = "";
       await render();
     });
 
