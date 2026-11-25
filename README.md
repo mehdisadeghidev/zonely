@@ -13,7 +13,8 @@ per-site and per-tab control over when it does.
 - **Auto by IP** — detects your location timezone via `ipwho.is`, falling back to `freeipapi.com`
 - **Per-site rules** — `Do not spoof`, `Fixed timezone`, `Auto by IP`
 - **Per-tab overrides** — session-scoped, can bypass exclusions
-- **Excluded / whitelisted domains** — wildcard support (`*.example.com`)
+- **Default mode** — `Auto by IP`, `Fixed timezone` or `Do not spoof` for every site without a rule
+- **Excluded domains** — wildcard support (`*.example.com`)
 - **Stable in-tab behavior** — a confirmed auto timezone stays locked for the tab's lifetime
 - **Protected domains by default** — Google/Gemini hosts keep the real system timezone so uploads and auth keep working
 
@@ -38,11 +39,12 @@ Then load `dist/` as an unpacked extension.
 Highest priority first:
 
 1. Per-tab override
-2. Exclusion / whitelist decision
-3. Per-site rule (most specific matching pattern wins)
-4. Global default mode (`auto`)
+2. Per-site rule (most specific matching pattern wins)
+3. Exclusion
+4. Default mode (`auto`, `fixed` + timezone, or `disable`)
 
-A per-tab override can override an exclusion; a site rule cannot.
+A per-tab override can override anything; a site rule outranks an exclusion, so
+an excluded host with its own rule follows that rule.
 `*.example.com` matches subdomains only — add the apex `example.com` separately.
 
 **Auto locks:** a detected timezone is locked for the tab's lifetime, including
@@ -68,7 +70,8 @@ quick rule editor scoped to *This site* or *This tab only* (drafts are kept
 independently per scope). Rules are disabled on Chrome internal, Web Store and
 other non-HTTP(S) pages; IP refresh and Options stay available.
 
-**Options** — manage excluded domains, whitelisted domains and per-site rules.
+**Options** — set the default mode, manage excluded domains and per-site rules
+(comma-separated patterns are accepted).
 
 ## Storage
 
