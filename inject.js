@@ -171,5 +171,5 @@
     // Some sites check Intl.supportedValuesOf('timeZone') — leave it as-is since
     // the target timezone is a valid IANA name.
 
-    console.log('[TimeZone Changer] Timezone spoofed to:', targetTimezone);
+    console.log('[Zonely] Timezone spoofed to:', targetTimezone);
 })();
