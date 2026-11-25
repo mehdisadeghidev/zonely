@@ -1,10 +1,10 @@
-# TimeZone Changer
+# Zonely
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/badge/version-2.02-blue.svg)](#)
 [![Browser](https://img.shields.io/badge/Chrome-Extension-green.svg)](#)
 
-`TimeZone Changer` is a Chrome extension (Manifest V3) that aligns browser timezone behavior with your network/IP location, while giving full per-site and per-tab control over spoofing.
+`Zonely` is a Chrome extension (Manifest V3) that aligns browser timezone behavior with your network/IP location, while giving full per-site and per-tab control over spoofing.
 
 ## Highlights (v2.02)
 

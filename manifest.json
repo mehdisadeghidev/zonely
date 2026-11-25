@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "TimeZone Changer",
+  "name": "Zonely",
   "version": "2.2",
   "description": "Automatically changes browser timezone to match your IP's location.",
   "permissions": [
