@@ -30,6 +30,16 @@ test('transport errors restore refresh button and are visible',async()=>{
   assert.ok(ui.element('status-message').textContent.length>0);
 });
 
+test('rule pattern input accepts comma separated patterns',async()=>{
+  const ui=await uiContext('options.js');
+  ui.element('rule-pattern').value=' example.com , *.example.com , example.com ';
+  ui.element('rule-mode').value='disable';
+  await ui.element('add-rule-btn').listeners.click();
+  const write=ui.calls.find(msg=>msg.action==='tzc:update-settings');
+  assert.deepEqual(Object.keys(write.settings.siteRules),['example.com','*.example.com']);
+  assert.equal(ui.element('rule-pattern').value,'');
+});
+
 test('failed options save preserves user input and shows the error',async()=>{
   const ui=await uiContext('options.js');ui.fail();
   ui.element('rule-pattern').value='example.com';

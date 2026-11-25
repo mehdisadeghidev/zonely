@@ -115,18 +115,23 @@ export function createOptions({ document: doc, chrome: api }: OptionsEnv = { doc
     };
   }
 
+  function splitPatterns(value: string): string[] {
+    const patterns = value.split(",").map((entry) => entry.trim().toLowerCase()).filter(Boolean);
+    return [...new Set(patterns)];
+  }
+
   function start(): void {
     onAction("add-exclude-btn", addPattern("exclude-input", "excludedDomains"));
     onAction("add-whitelist-btn", addPattern("whitelist-input", "whitelistDomains"));
     onAction("add-rule-btn", async () => {
-      const pattern = $<HTMLInputElement>("rule-pattern").value.trim().toLowerCase();
+      const patterns = splitPatterns($<HTMLInputElement>("rule-pattern").value);
       const mode = $<HTMLSelectElement>("rule-mode").value as RuleMode;
       const timezone = $<HTMLInputElement>("rule-timezone").value.trim();
-      if (!pattern) return;
+      if (!patterns.length) return;
 
       const settings = await loadSettings();
       if (!settings) return;
-      settings.siteRules[pattern] = { mode, timezone: mode === "fixed" ? timezone : "" };
+      for (const pattern of patterns) settings.siteRules[pattern] = { mode, timezone: mode === "fixed" ? timezone : "" };
 
       await saveSettings(settings);
       $<HTMLInputElement>("rule-pattern").value = "";
