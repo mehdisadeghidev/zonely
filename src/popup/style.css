@@ -86,27 +86,8 @@ button:active {
     background-color: #dce1e3;
 }
 
-select,
-input {
-    width: 100%;
-    box-sizing: border-box;
-    border: 1px solid #d0d7de;
-    border-radius: 4px;
-    padding: 8px;
-    margin-top: 6px;
-    font-size: 13px;
-    background: #fff;
-}
-
 .actions {
     margin-top: 4px;
-}
-
-.field-label {
-    display: block;
-    margin-top: 10px;
-    font-size: 12px;
-    font-weight: 600;
 }
 
 .hint,
@@ -122,9 +103,7 @@ input {
     display: none;
 }
 
-button:disabled,
-select:disabled,
-input:disabled {
+button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
