@@ -8,6 +8,13 @@
       "skillPath": "skills/caveman-commit/SKILL.md",
       "computedHash": "2c1472fb59eedd3cfba0b6512dc470a00287343ade421db55c21a6fb52afbe86"
     },
+    "chrome-extension": {
+      "source": "samber/cc-skills",
+      "commit": "50a33836b20f690c668af557bd9ef9d07a8c7ef2",
+      "sourceType": "github",
+      "skillPath": "skills/chrome-extension/SKILL.md",
+      "computedHash": "106b2e01601e35f723241512635ce5c7af009e64ad37f1903d929d215700e955"
+    },
     "chrome-extension-development": {
       "source": "Mindrally/skills",
       "commit": "7682ca77710e0971eab4e0ae5dddfa281aea0ba5",
