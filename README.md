@@ -83,13 +83,34 @@ need their own reload. Settings changed in Options also require page reloads.
 ## Installation
 
 1. Clone or download this repository.
-2. Open `chrome://extensions/`.
-3. Enable `Developer mode`.
-4. Click `Load unpacked`.
-5. Select the project folder.
+2. `pnpm install && pnpm build`
+3. Open `chrome://extensions/`.
+4. Enable `Developer mode`.
+5. Click `Load unpacked`.
+6. Select the `dist/` folder.
+
+## Project structure
+
+```text
+src/
+  background/       MV3 service worker (ES modules)
+    index.ts        entry: wires the worker
+    app.ts          message router + event listeners
+    page-config.ts  hostname -> effective mode/timezone
+    settings-store.ts, tab-state.ts, timezone.ts
+  content/
+    index.ts        isolated-world content script
+    spoof.ts        page-world Date/Intl patching script
+  shared/           settings rules, message protocol, messenger
+  popup/            popup page (index.html, main.ts, style.css)
+  options/          options page (index.html, main.ts, style.css)
+public/icons/       extension icons
+manifest.config.ts  generated into dist/manifest.json
+```
 
 ## Technical Notes
 
+- TypeScript + Vite + CRXJS; `dist/` is the only loadable artifact
 - Uses content-script + page-context injection model
 - Checks `location.hostname` before applying spoof logic
 - Supports all frames (`all_frames: true`)
@@ -97,26 +118,30 @@ need their own reload. Settings changed in Options also require page reloads.
 
 ## Development and verification
 
-No build step, package manager configuration or third-party test dependency is
-required. With Node.js 22 or newer:
-
-```powershell
-node --test tests/*.test.cjs
+```sh
+pnpm install
+pnpm dev        # Vite + CRXJS dev server with HMR
+pnpm build      # typecheck, then bundle into dist/
+pnpm typecheck  # tsc --noEmit
+pnpm test       # node --test, no build required
 ```
 
-This runs isolated VM/Chrome-API-double regressions and native Date oracle checks
-in separate timezone-configured processes. It does not replace Chrome testing.
+The regression suite runs isolated VM/Chrome-API-double tests and native Date
+oracle checks in separate timezone-configured processes, importing the TypeScript
+sources directly through Node's built-in type stripping (Node.js 22.18 or newer).
+It does not replace Chrome testing.
 
-```powershell
-node tests/browser-smoke.cjs
+```sh
+pnpm test:smoke
 ```
 
-The optional integration probe uses installed Chrome and its DevTools protocol to
-load the unpacked extension in a **new temporary headless profile**, not your
-regular browser. On Windows it defaults to the standard Chrome installation;
-set `CHROME_PATH` for another installation. It needs a Chrome version supporting
-`Extensions.loadUnpacked` with `--enable-unsafe-extension-debugging`. Temporary
-profiles are retained under `%LOCALAPPDATA%\Temp\opencode\tzc-chrome-*` for diagnosis.
+The optional integration probe builds first, then uses installed Chrome and its
+DevTools protocol to load the unpacked extension in a **new temporary headless
+profile**, not your regular browser. On Windows it defaults to the standard Chrome
+installation; set `CHROME_PATH` for another installation. It needs a Chrome version
+supporting `Extensions.loadUnpacked` with `--enable-unsafe-extension-debugging`.
+Temporary profiles are retained under `%LOCALAPPDATA%\Temp\opencode\tzc-chrome-*`
+for diagnosis.
 
 The probe checks normal/strict-CSP pages, same/cross-origin frames, popup
 validation, site rules and tab disable/fixed/inherit. Chrome may canonicalize
@@ -129,12 +154,10 @@ timezone aliases (for example `Asia/Kathmandu` to `Asia/Katmandu`).
 - Workers, `about:blank` and `srcdoc` frames are not spoofed by the current
   injection path. This is not a comprehensive fingerprinting/privacy boundary.
 - Changes to settings require reload; changing an already-confirmed auto lock
-  requires a new tab.
-- Date/Intl patching cannot be indistinguishable from native APIs. Nonstandard
+  requires a new tab.- Date/Intl patching cannot be indistinguishable from native APIs. Nonstandard
   date-string parsing is engine-specific; standard ISO and common legacy forms,
   local setters and DST transitions have regression coverage, not a guarantee
   of compatibility with every exotic Date use.
-- `inject.js` is a legacy reference and has no runtime effect.
 
 ## License
 

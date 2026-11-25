@@ -1,7 +1,10 @@
-(function () {
+// Page-world script: rewritten timezone primitives for the host page.
+// Injected by the content script (crxjs `?script&iife`) into the MAIN world.
+(() => {
   const targetTimezone = document.documentElement.dataset.tzChanger;
-  if (!targetTimezone || window.__TZ_SPOOFED__) return;
-  window.__TZ_SPOOFED__ = true;
+  const scopedWindow = window as Window & { __TZ_SPOOFED__?: boolean };
+  if (!targetTimezone || scopedWindow.__TZ_SPOOFED__) return;
+  scopedWindow.__TZ_SPOOFED__ = true;
 
   const OriginalDate = Date;
   const OriginalDateTimeFormat = Intl.DateTimeFormat;
@@ -10,10 +13,12 @@
     hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
   });
 
-  function getOffsetMilliseconds(ts) {
+  type DateProto = typeof Date.prototype & Record<string, unknown>;
+
+  function getOffsetMilliseconds(ts: number): number {
     if (!Number.isFinite(ts)) return NaN;
     const parts = offsetFormatter.formatToParts(new OriginalDate(ts));
-    const get = (type) => Number(parts.find((p) => p.type === type)?.value || 0);
+    const get = (type: string) => Number(parts.find((p) => p.type === type)?.value || 0);
     const year = parts.find((p) => p.type === "era")?.value === "BC" ? 1 - get("year") : get("year");
     // Keep intermediate Dates within TimeClip even at the Date range limits.
     const cycles = Math.floor((year - 2000) / 400);
@@ -23,18 +28,18 @@
     return Math.floor(ts / 1000) * 1000 - (local.getTime() + cycles * 146097 * 86400000);
   }
 
-  function getOffsetMinutes(ts) {
+  function getOffsetMinutes(ts: number): number {
     const offset = Math.trunc(getOffsetMilliseconds(ts) / 60000);
     return offset === 0 ? 0 : offset;
   }
 
-  function localDate(ts) {
+  function localDate(ts: number): Date {
     return new OriginalDate(ts - getOffsetMilliseconds(ts));
   }
 
   // Resolve local wall time using offsets on both sides of nearby transitions.
   // Overlap: choose the earlier instant. Gap: advance by the transition gap.
-  function fromLocalTime(wallTime) {
+  function fromLocalTime(wallTime: number): number {
     if (!Number.isFinite(wallTime)) return NaN;
     const limit = 8640000000000000;
     const offsets = new Set([-2, 0, 2].map((days) => getOffsetMilliseconds(Math.max(-limit, Math.min(limit, wallTime + days * 86400000)))));
@@ -46,7 +51,7 @@
     return after[0]?.ts ?? NaN;
   }
 
-  function formatDate(ts) {
+  function formatDate(ts: number): { dateStr: string; timeStr: string } {
     const dateFormatter = new OriginalDateTimeFormat("en-US", {
       timeZone: targetTimezone,
       weekday: "short",
@@ -66,7 +71,7 @@
       timeZoneName: "long"
     });
 
-    const getPart = (parts, type) => parts.find((p) => p.type === type)?.value || "";
+    const getPart = (parts: Intl.DateTimeFormatPart[], type: string) => parts.find((p) => p.type === type)?.value || "";
     const dateParts = dateFormatter.formatToParts(new OriginalDate(ts));
     const timeParts = timeFormatter.formatToParts(new OriginalDate(ts));
     const tzParts = tzNameFormatter.formatToParts(new OriginalDate(ts));
@@ -86,7 +91,7 @@
     };
   }
 
-  function timezoneOptions(options) {
+  function timezoneOptions(options: Intl.DateTimeFormatOptions | undefined | null): Intl.DateTimeFormatOptions {
     if (options === null) throw new TypeError("Options cannot be null");
     const source = options === undefined ? Object.create(null) : Object(options);
     // Native Intl decides which properties to read and in what order. Forward
@@ -99,71 +104,82 @@
     });
   }
 
-  const toLocaleLike = (original) =>
-    function (locales, options) {
+  type LocaleFormatter = (this: Date, locales?: string | string[], options?: Intl.DateTimeFormatOptions) => string;
+
+  const toLocaleLike = (original: LocaleFormatter): LocaleFormatter =>
+    function (this: Date, locales, options) {
       // Native Date locale methods return Invalid Date before converting options.
       try {
         if (Number.isNaN(OriginalDate.prototype.getTime.call(this))) {
           return original.call(this, locales, options);
         }
-      } catch (_) {
+      } catch {
         // Let the native method preserve its incompatible-receiver error.
         return original.call(this, locales, options);
       }
       return original.call(this, locales, timezoneOptions(options));
     };
 
-  Date.prototype.getTimezoneOffset = function () {
+  const dateProto = OriginalDate.prototype as DateProto;
+
+  dateProto.getTimezoneOffset = function (this: Date) {
     return getOffsetMinutes(this.getTime());
   };
 
-  Date.prototype.toString = function () {
+  dateProto.toString = function (this: Date) {
     if (isNaN(this.getTime())) return "Invalid Date";
     const parts = formatDate(this.getTime());
     return `${parts.dateStr} ${parts.timeStr}`;
   };
 
-  Date.prototype.toDateString = function () {
+  dateProto.toDateString = function (this: Date) {
     if (isNaN(this.getTime())) return "Invalid Date";
     return formatDate(this.getTime()).dateStr;
   };
 
-  Date.prototype.toTimeString = function () {
+  dateProto.toTimeString = function (this: Date) {
     if (isNaN(this.getTime())) return "Invalid Date";
     return formatDate(this.getTime()).timeStr;
   };
 
-  Date.prototype.toLocaleString = toLocaleLike(Date.prototype.toLocaleString);
-  Date.prototype.toLocaleDateString = toLocaleLike(Date.prototype.toLocaleDateString);
-  Date.prototype.toLocaleTimeString = toLocaleLike(Date.prototype.toLocaleTimeString);
+  dateProto.toLocaleString = toLocaleLike(dateProto.toLocaleString as LocaleFormatter);
+  dateProto.toLocaleDateString = toLocaleLike(dateProto.toLocaleDateString as LocaleFormatter);
+  dateProto.toLocaleTimeString = toLocaleLike(dateProto.toLocaleTimeString as LocaleFormatter);
 
-  for (const suffix of ["FullYear", "Month", "Date", "Day", "Hours", "Minutes", "Seconds", "Milliseconds"]) {
-    const utcGetter = OriginalDate.prototype[`getUTC${suffix}`];
-    OriginalDate.prototype[`get${suffix}`] = function () {
+  const dateFields = ["FullYear", "Month", "Date", "Day", "Hours", "Minutes", "Seconds", "Milliseconds"] as const;
+
+  for (const suffix of dateFields) {
+    const utcGetter = dateProto[`getUTC${suffix}`] as (this: Date) => number;
+    dateProto[`get${suffix}`] = function (this: Date) {
       const ts = OriginalDate.prototype.getTime.call(this);
       const local = localDate(ts);
       if (!Number.isFinite(ts) || Number.isFinite(local.getTime())) return utcGetter.call(local);
       const parts = offsetFormatter.formatToParts(new OriginalDate(ts));
-      const get = (type) => Number(parts.find((p) => p.type === type)?.value);
+      const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
       const year = parts.find((p) => p.type === "era")?.value === "BC" ? 1 - get("year") : get("year");
-      const fields = { FullYear: year, Month: get("month") - 1, Date: get("day"),
+      const fields = {
+        FullYear: year, Month: get("month") - 1, Date: get("day"),
         Day: ((Math.floor((ts - getOffsetMilliseconds(ts)) / 86400000) + 4) % 7 + 7) % 7,
-        Hours: get("hour"), Minutes: get("minute"), Seconds: get("second"), Milliseconds: ((ts % 1000) + 1000) % 1000 };
+        Hours: get("hour"), Minutes: get("minute"), Seconds: get("second"), Milliseconds: ((ts % 1000) + 1000) % 1000
+      } as Record<(typeof dateFields)[number], number>;
       return fields[suffix];
     };
   }
-  OriginalDate.prototype.getYear = function () { return this.getFullYear() - 1900; };
+  dateProto.getYear = function (this: Date) {
+    return this.getFullYear() - 1900;
+  };
 
-  for (const suffix of ["FullYear", "Month", "Date", "Hours", "Minutes", "Seconds", "Milliseconds"]) {
-    const utcSetter = OriginalDate.prototype[`setUTC${suffix}`];
-    OriginalDate.prototype[`set${suffix}`] = function (...args) {
+  for (const suffix of dateFields) {
+    if (suffix === "Day") continue;
+    const utcSetter = dateProto[`setUTC${suffix}`] as (this: Date, ...args: number[]) => number;
+    dateProto[`set${suffix}`] = function (this: Date, ...args: number[]) {
       const ts = OriginalDate.prototype.getTime.call(this);
-      const local = Number.isNaN(ts) && suffix === "FullYear" ? new OriginalDate(0) : localDate(ts);
+      const local: Date = Number.isNaN(ts) && suffix === "FullYear" ? new OriginalDate(0) : localDate(ts);
       utcSetter.apply(local, args);
       return OriginalDate.prototype.setTime.call(this, fromLocalTime(local.getTime()));
     };
   }
-  OriginalDate.prototype.setYear = function (year) {
+  dateProto.setYear = function (this: Date, year: number) {
     let value = +year;
     if (!Number.isNaN(value)) {
       value = Math.trunc(value);
@@ -172,7 +188,7 @@
     return OriginalDate.prototype.setFullYear.call(this, value);
   };
 
-  function parseDate(value) {
+  function parseDate(value: string): number {
     const text = `${value}`;
     // ISO date-only forms are UTC; explicit offsets must remain absolute.
     const dateOnly = /^[+-]?\d{4,6}(?:-\d{2}(?:-\d{2})?)?$/.test(text);
@@ -183,7 +199,7 @@
     return fromLocalTime(wall);
   }
 
-  function primitive(value) {
+  function primitive(value: any): any {
     if (value === null || (typeof value !== "object" && typeof value !== "function")) return value;
     const convert = value[Symbol.toPrimitive];
     if (convert !== undefined && convert !== null) {
@@ -199,26 +215,31 @@
     throw new TypeError("Cannot convert object to primitive value");
   }
 
-  function localTimeFromComponents(args) {
+  function localTimeFromComponents(args: any[]): number {
     const values = args.map((value) => Number(value));
     let year = Math.trunc(values[0]);
     if (year >= 0 && year <= 99) year += 1900;
     const cycles = Math.floor((year - 2000) / 400);
     const reducedYear = year - cycles * 400;
-    const utcWallTime = OriginalDate.UTC(reducedYear, ...values.slice(1));
+    const utcWallTime = OriginalDate.UTC(reducedYear, ...(values.slice(1) as [number, number?, number?, number?, number?, number?]));
     if (!Number.isFinite(utcWallTime)) return NaN;
     return fromLocalTime(utcWallTime + cycles * 146097 * 86400000);
   }
 
   const DateProxy = new Proxy(OriginalDate, {
-    apply() { return new OriginalDate().toString(); },
+    apply() {
+      return new OriginalDate().toString();
+    },
     construct(target, args, newTarget) {
       if (args.length === 0) return Reflect.construct(target, [], newTarget);
       if (args.length >= 2) return Reflect.construct(target, [localTimeFromComponents(args.slice(0, 7))], newTarget);
-      let value;
+      let value: any;
       // Native Date copies another Date's internal timestamp without coercion.
-      try { value = OriginalDate.prototype.getTime.call(args[0]); }
-      catch (_) { value = primitive(args[0]); }
+      try {
+        value = OriginalDate.prototype.getTime.call(args[0]);
+      } catch {
+        value = primitive(args[0]);
+      }
       return Reflect.construct(target, [typeof value === "string" ? parseDate(value) : value], newTarget);
     },
     get(target, key, receiver) {
@@ -231,15 +252,11 @@
   const DateTimeFormatProxy = new Proxy(OriginalDateTimeFormat, {
     apply(target, thisArg, args) {
       const [locales, options] = args;
-      const opts = timezoneOptions(options);
-      const instance = Reflect.apply(target, thisArg, [locales, opts]);
-      return instance;
+      return Reflect.apply(target, thisArg, [locales, timezoneOptions(options)]);
     },
     construct(target, args, newTarget) {
       const [locales, options] = args;
-      const opts = timezoneOptions(options);
-      const instance = Reflect.construct(target, [locales, opts], newTarget);
-      return instance;
+      return Reflect.construct(target, [locales, timezoneOptions(options)], newTarget);
     }
   });
 
@@ -248,5 +265,4 @@
     configurable: true,
     writable: true
   });
-
 })();
