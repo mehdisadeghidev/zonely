@@ -52,10 +52,13 @@ reloads and navigation. Refreshing IP data does not change an existing lock; ope
 a new tab to pick up the new timezone. A first-detection failure falls back to the
 system timezone *without* locking, so the page picks up the real value on reload.
 
+**IP lookups are cached:** the last result (IP, timezone, city, country and a
+`lastUpdate` stamp) lives in `chrome.storage.local` and is reused for 5 minutes,
+so page loads, navigations and worker restarts do not re-request it. Refresh in
+the popup forces a new lookup.
+
 **Editing rules:** `Auto by IP` is an explicit rule; `Use inherited policy` removes
-the exact site rule or tab override for the selected scope. **Apply and reload**
-reloads the current tab only — other tabs on that site need their own reload, and
-Options-page changes require page reloads.
+the exact site rule. Options-page changes require page reloads.
 
 ### Protected domains
 
@@ -65,10 +68,11 @@ Spoofing is off by default on hosts where a fake clock breaks things:
 
 ## UI
 
-**Popup** — current IP/location/timezone, current host and active mode, and one
-quick rule editor scoped to *This site* or *This tab only* (drafts are kept
-independently per scope). Rules are disabled on Chrome internal, Web Store and
-other non-HTTP(S) pages; IP refresh and Options stay available.
+**Popup** — status only: current IP/location/timezone, current host, effective
+mode and rule source, plus Refresh and All rules. Rules are disabled on Chrome
+internal, Web Store and other non-HTTP(S) pages; IP refresh and Options stay
+available. Tab overrides are no longer editable here — Options manages site rules
+only.
 
 **Options** — set the default mode, manage excluded domains and per-site rules
 (comma-separated patterns are accepted).
