@@ -116,6 +116,20 @@ manifest.config.ts  generated into dist/manifest.json
 - Supports all frames (`all_frames: true`)
 - Maintains MV3 compatibility
 
+## Releases
+
+`.github/workflows/release.yml` runs on a `v*` tag push (or manually from the
+Actions tab): it installs with `--frozen-lockfile`, builds `dist/`, zips it as
+`zonely-v<version>.zip` and publishes a GitHub release with that asset.
+
+```sh
+pnpm version patch        # bumps package.json, which drives the manifest version
+git push --follow-tags    # tag must be v<package.json version> or the job fails
+```
+
+Download the zip from the release, unzip it, then load the unzipped folder via
+`chrome://extensions` -> Developer mode -> Load unpacked.
+
 ## Development and verification
 
 ```sh
