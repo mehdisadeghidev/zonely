@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "skills": {
+    "caveman-commit": {
+      "source": "JuliusBrussee/caveman",
+      "commit": "47c61be2d10a354f0c5cbe2b90959d24c06b16c6",
+      "sourceType": "github",
+      "skillPath": "skills/caveman-commit/SKILL.md",
+      "computedHash": "2c1472fb59eedd3cfba0b6512dc470a00287343ade421db55c21a6fb52afbe86"
+    },
+    "chrome-extension-development": {
+      "source": "Mindrally/skills",
+      "commit": "7682ca77710e0971eab4e0ae5dddfa281aea0ba5",
+      "sourceType": "github",
+      "skillPath": "chrome-extension-development/SKILL.md",
+      "computedHash": "2e493d167d3652c6b7cb4af75ae9618ac4ef557d62f2f397eb668d0b4875c2a5"
+    }
+  }
+}
