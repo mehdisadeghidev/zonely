@@ -8,30 +8,19 @@ export interface SiteRule {
 export interface Settings {
   defaultMode: RuleMode;
   defaultTimezone: string;
-  excludedDomains: string[];
   siteRules: Record<string, SiteRule>;
 }
 
 export interface Behavior {
   mode: RuleMode;
-  source: "excluded" | "siteRule" | "default";
+  source: "siteRule" | "default";
   timezone?: string;
   pattern?: string;
 }
 
-export const DEFAULT_EXCLUDED_DOMAINS = [
-  "*.google.com",
-  "gemini.google.com",
-  "*.googleapis.com",
-  "upload.googleapis.com",
-  "*.gstatic.com",
-  "accounts.google.com"
-];
-
 export const DEFAULT_SETTINGS: Settings = {
   defaultMode: "auto",
   defaultTimezone: "",
-  excludedDomains: DEFAULT_EXCLUDED_DOMAINS,
   siteRules: {}
 };
 
@@ -74,25 +63,15 @@ export function resolveHostnameBehavior(hostname: string, settings: Partial<Sett
   const safe: Settings = {
     ...DEFAULT_SETTINGS,
     ...(settings || {}),
-    excludedDomains: Array.isArray(settings?.excludedDomains) ? settings.excludedDomains : DEFAULT_SETTINGS.excludedDomains,
     siteRules: settings?.siteRules && typeof settings.siteRules === "object" ? settings.siteRules : {}
   };
 
-  // A site rule is an explicit decision for this host, so it outranks exclusions.
   const { pattern, rule } = findBestRule(hostname, safe.siteRules);
   if (rule && typeof rule === "object") {
     return { mode: rule.mode || "auto", timezone: rule.timezone || "", source: "siteRule", pattern: pattern ?? undefined };
   }
 
-  if (safe.excludedDomains.some((excluded) => matchesPattern(hostname, excluded))) {
-    return { mode: "disable", source: "excluded" };
-  }
-
   return { mode: safe.defaultMode || "auto", timezone: safe.defaultTimezone || "", source: "default" };
-}
-
-function toStringList(value: unknown, fallback: string[]): string[] {
-  return Array.isArray(value) ? value.map((entry) => String(entry).trim()).filter(Boolean) : [...fallback];
 }
 
 export function sanitizeSettings(raw: unknown): Settings {
@@ -105,7 +84,6 @@ export function sanitizeSettings(raw: unknown): Settings {
   const safe: Settings = {
     defaultMode: fixedDefault ? "fixed" : mode === "fixed" ? "auto" : mode,
     defaultTimezone: fixedDefault ? defaultTimezone : "",
-    excludedDomains: toStringList(input.excludedDomains, DEFAULT_SETTINGS.excludedDomains),
     siteRules: {}
   };
 

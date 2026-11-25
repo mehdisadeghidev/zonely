@@ -80,7 +80,7 @@ async function main() {
       return {targetId,sessionId};
     }
     const options=await page(`chrome-extension://${id}/options.html`);
-    await cdp.evaluate(options.sessionId,`chrome.storage.sync.set({settings:{defaultMode:'auto',defaultTimezone:'',excludedDomains:[],siteRules:{'*':{mode:'fixed',timezone:'Asia/Tokyo'}}}})`);
+    await cdp.evaluate(options.sessionId,`chrome.storage.sync.set({settings:{defaultMode:'auto',defaultTimezone:'',siteRules:{'*':{mode:'fixed',timezone:'Asia/Tokyo'}}}})`);
     await cdp.evaluate(options.sessionId,`chrome.storage.local.set({timezone:'Europe/Berlin'})`);
     const results={browser:version.product,extensionId:id,profile,probes:[]};
     let normal;
@@ -150,7 +150,7 @@ async function main() {
     await until(()=>cdp.evaluate(normal.sessionId,`Intl.DateTimeFormat().resolvedOptions().timeZone === ${JSON.stringify(kathmandu)}`),'tab inheritance');
     results.ui.tabRules='disable/fixed/inherit verified';
     async function settings(value) {
-      const result=await message({action:'tzc:update-settings',settings:{defaultMode:'auto',defaultTimezone:'',excludedDomains:[],siteRules:{},...value}});
+      const result=await message({action:'tzc:update-settings',settings:{defaultMode:'auto',defaultTimezone:'',siteRules:{},...value}});
       assert.equal(result.ok,true);
     }
     async function reloadTimezone(tab,timezone) {
@@ -158,9 +158,9 @@ async function main() {
       await until(()=>cdp.evaluate(tab.sessionId,`document.readyState === 'complete' && Intl.DateTimeFormat().resolvedOptions().timeZone === ${JSON.stringify(timezone)}`),'reloaded timezone '+timezone);
     }
     const systemTimezone=await cdp.evaluate(options.sessionId,'Intl.DateTimeFormat().resolvedOptions().timeZone');
-    await settings({excludedDomains:['127.0.0.1'],siteRules:{'*':{mode:'fixed',timezone:'UTC'}}});
+    await settings({siteRules:{'*':{mode:'fixed',timezone:'UTC'}}});
     await reloadTimezone(normal,'UTC');
-    await settings({excludedDomains:['127.0.0.1']});
+    await settings({siteRules:{'127.0.0.1':{mode:'disable'}}});
     await reloadTimezone(normal,systemTimezone);
     await settings({});
     await cdp.evaluate(options.sessionId,'chrome.storage.local.set({timezone:"Europe/Berlin"})');
@@ -170,7 +170,7 @@ async function main() {
     const fresh=await page(`http://127.0.0.1:${server.address().port}/fresh`);
     await until(()=>cdp.evaluate(fresh.sessionId,'Intl.DateTimeFormat().resolvedOptions().timeZone === "Asia/Tokyo"'),'new auto tab timezone');
     await cdp.send('Target.closeTarget',{targetId:fresh.targetId});
-    results.ui.siteRuleOverExclusion='site rule outranks exclusion; bare exclusion disables';
+    results.ui.siteRuleModes='wildcard fixed rule applies; disable rule keeps the system zone';
     results.ui.autoLock='reload retains confirmed zone; new tab uses updated runtime';
     results.errors=cdp.events.filter(e=>e.method==='Runtime.exceptionThrown'||e.method==='Log.entryAdded'&&e.params.entry.level==='error').map(e=>e.params);
     console.log(JSON.stringify(results,null,2));

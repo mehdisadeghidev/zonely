@@ -5,7 +5,6 @@ export const ACTIONS = {
   getPageConfig: "tzc:get-page-config",
   getSettings: "tzc:get-settings",
   updateSettings: "tzc:update-settings",
-  addExcludedSite: "tzc:add-excluded-site",
   setSiteRule: "tzc:set-site-rule",
   setTabRule: "tzc:set-tab-rule",
   getTabStatus: "tzc:get-tab-status"
@@ -51,7 +50,6 @@ export type Message =
   | { action: typeof ACTIONS.getPageConfig; hostname: string }
   | { action: typeof ACTIONS.getSettings }
   | { action: typeof ACTIONS.updateSettings; settings: Partial<Settings> }
-  | { action: typeof ACTIONS.addExcludedSite; hostname: string }
   | { action: typeof ACTIONS.setSiteRule; pattern: string; rule: { mode: RuleChoice; timezone?: string } }
   | { action: typeof ACTIONS.setTabRule; tabId?: number; mode: RuleChoice; timezone?: string }
   | { action: typeof ACTIONS.getTabStatus };

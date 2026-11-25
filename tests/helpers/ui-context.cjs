@@ -25,7 +25,7 @@ async function uiContext(file='popup.js', options={}) {
         queueMicrotask(async()=>{
           if(options.beforeMessage) await options.beforeMessage(msg);
           if(transportError){chrome.runtime.lastError={message:'worker unavailable'};cb();delete chrome.runtime.lastError;return;}
-          cb(msg.action==='tzc:get-settings'?{settings:{defaultMode:'auto',defaultTimezone:'',excludedDomains:[],siteRules:{}},runtime:{timezone:'Europe/Berlin'}}:
+          cb(msg.action==='tzc:get-settings'?{settings:{defaultMode:'auto',defaultTimezone:'',siteRules:{}},runtime:{timezone:'Europe/Berlin'}}:
             msg.action==='tzc:get-tab-status'?status:fail?{ok:false,error:'invalid-timezone'}:{ok:true,success:true});
         });
       }, async openOptionsPage(){openedOptions.push(true);}

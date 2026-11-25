@@ -55,16 +55,6 @@ export function createBackground(api: ChromeApi, options: RuntimeServiceOptions 
     return { ok: true, settings: await settingsStore.mutate(() => sanitizeSettings(next || {})) };
   }
 
-  async function addExcludedSite(hostname: string): Promise<{ ok: boolean; error?: string; settings?: Settings }> {
-    const pattern = String(hostname || "").trim().toLowerCase();
-    if (!pattern) return { ok: false, error: "empty-pattern" };
-    const settings = await settingsStore.mutate((current) => {
-      if (!current.excludedDomains.includes(pattern)) current.excludedDomains.push(pattern);
-      return current;
-    });
-    return { ok: true, settings };
-  }
-
   async function setSiteRule(pattern: string, rule: { mode?: string; timezone?: unknown } | null | undefined): Promise<{ ok: boolean; error?: string; settings?: Settings }> {
     const normalized = String(pattern || "").trim().toLowerCase();
     const nextRule = rule || {};
@@ -121,8 +111,6 @@ export function createBackground(api: ChromeApi, options: RuntimeServiceOptions 
         return readSettings();
       case ACTIONS.updateSettings:
         return updateSettings(msg.settings);
-      case ACTIONS.addExcludedSite:
-        return addExcludedSite(msg.hostname);
       case ACTIONS.setSiteRule:
         return setSiteRule(msg.pattern, msg.rule);
       case ACTIONS.setTabRule:

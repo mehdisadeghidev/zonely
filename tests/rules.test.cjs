@@ -69,21 +69,19 @@ test('storage failure returns an actionable error response', async () => {
   assert.equal(result.error,'storage-error');
 });
 
-test('site rules outrank exclusions, while a tab override wins over both', async () => {
+test('site rules outrank the default, while a tab override wins over both', async () => {
   const bg=backgroundContext();
   const settings=bg.data.sync.settings;
-  settings.excludedDomains=['excluded.example','plain.example'];
-  settings.siteRules={'excluded.example':{mode:'fixed',timezone:'Asia/Tokyo'}};
-  assert.equal((await bg.run('getPageConfig(1,"excluded.example")')).source,'siteRule');
-  assert.equal((await bg.run('getPageConfig(1,"excluded.example")')).timezone,'Asia/Tokyo');
-  assert.equal((await bg.run('getPageConfig(2,"plain.example")')).source,'excluded');
+  settings.siteRules={'plain.example':{mode:'disable',timezone:''}};
+  assert.equal((await bg.run('getPageConfig(2,"plain.example")')).source,'siteRule');
+  assert.equal((await bg.run('getPageConfig(2,"plain.example")')).shouldSpoof,false);
   await bg.message({action:'tzc:set-tab-rule',tabId:2,mode:'fixed',timezone:'UTC'});
   assert.equal((await bg.run('getPageConfig(2,"plain.example")')).timezone,'UTC');
 });
 
 test('default mode can fix a timezone and still yields to site rules', async () => {
   const bg=backgroundContext();
-  bg.data.sync.settings={defaultMode:'fixed',defaultTimezone:'Asia/Tokyo',excludedDomains:[],siteRules:{}};
+  bg.data.sync.settings={defaultMode:'fixed',defaultTimezone:'Asia/Tokyo',siteRules:{}};
   const config=await bg.run('getPageConfig(1,"example.com")');
   assert.equal(config.source,'default');
   assert.equal(config.timezone,'Asia/Tokyo');
@@ -92,11 +90,10 @@ test('default mode can fix a timezone and still yields to site rules', async () 
   assert.equal((await restarted.run('getPageConfig(2,"example.com")')).shouldSpoof,false);
 });
 
-test('wildcards do not include the apex domain and default protection is retained', () => {
+test('wildcards do not include the apex domain', () => {
   const bg=backgroundContext();
   assert.equal(bg.run('TZC_SHARED.matchesPattern("google.com","*.google.com")'),false);
-  assert.equal(bg.run('TZC_SHARED.resolveHostnameBehavior("gemini.google.com", TZC_SHARED.DEFAULT_SETTINGS).source'),'excluded');
-  assert.equal(bg.run('TZC_SHARED.resolveHostnameBehavior("google.com", TZC_SHARED.DEFAULT_SETTINGS).mode'),'auto');
+  assert.equal(bg.run('TZC_SHARED.matchesPattern("gemini.google.com","*.google.com")'),true);
 });
 
 for(const url of ['chrome-extension://exampleid/options.html','chrome://settings/','about:blank','file:///C:/test.html','data:text/html,test','https://chromewebstore.google.com/detail/test','https://chrome.google.com/webstore/detail/test']) {
