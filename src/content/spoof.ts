@@ -8,7 +8,9 @@
 
   const OriginalDate = Date;
   const OriginalDateTimeFormat = Intl.DateTimeFormat;
-  const offsetFormatter = new OriginalDateTimeFormat("en-US-u-ca-iso8601-nu-latn", {
+  // Gregorian calendar: the iso8601 calendar suppresses the `era` part, which
+  // is the only way ICU reports astronomical years before 1 CE.
+  const offsetFormatter = new OriginalDateTimeFormat("en-US-u-nu-latn", {
     timeZone: targetTimezone, era: "short", year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
   });
