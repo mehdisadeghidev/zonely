@@ -1,4 +1,5 @@
 // Isolated Chrome integration probe. No packages or existing browser profile.
+// Requires a prior build: `pnpm build` (loads the unpacked extension from dist/).
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -67,7 +68,7 @@ async function main() {
     const [port,wsPath]=endpoint.trim().split(/\r?\n/);
     cdp=await CDP.connect(`ws://127.0.0.1:${port}${wsPath}`);
     const version=await cdp.send('Browser.getVersion');
-    const {id}=await cdp.send('Extensions.loadUnpacked',{path:path.resolve(__dirname,'..')});
+    const {id}=await cdp.send('Extensions.loadUnpacked',{path:path.resolve(__dirname,'../dist')});
     async function page(url) {
       const {targetId}=await cdp.send('Target.createTarget',{url:'about:blank'});
       const {sessionId}=await cdp.send('Target.attachToTarget',{targetId,flatten:true});

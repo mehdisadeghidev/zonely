@@ -1,17 +1,19 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
+const fs=require('node:fs');
+const path=require('node:path');
+const vm=require('node:vm');
+const {stripTypeScriptTypes}=require('node:module');
 
-function pageContext(timezone = 'America/New_York', before = '') {
-  const context = vm.createContext({
-    document: { documentElement: { dataset: { tzChanger: timezone } }, dispatchEvent() {} },
-    CustomEvent: function () {},
-    XMLHttpRequest: function () {}
+function pageContext(timezone='America/New_York', before='') {
+  const context=vm.createContext({
+    document:{documentElement:{dataset:{tzChanger:timezone}},dispatchEvent(){}},
+    CustomEvent:function(){},
+    XMLHttpRequest:function(){}
   });
-  vm.runInContext('window = globalThis; XMLHttpRequest.prototype.send = function() {};', context);
-  if (before) vm.runInContext(before, context);
-  vm.runInContext(fs.readFileSync(path.join(__dirname, '../../spoof.js'), 'utf8'), context);
-  return (expression) => vm.runInContext(expression, context);
+  vm.runInContext('window = globalThis; XMLHttpRequest.prototype.send = function() {};',context);
+  if(before) vm.runInContext(before,context);
+  const source=stripTypeScriptTypes(fs.readFileSync(path.join(__dirname,'../../src/content/spoof.ts'),'utf8'));
+  vm.runInContext(source,context);
+  return expression=>vm.runInContext(expression,context);
 }
 
-module.exports = { pageContext };
+module.exports={pageContext};

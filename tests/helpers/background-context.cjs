@@ -1,6 +1,4 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
+const { createBackground } = require('../../src/background/app.ts');
 
 function deferred() {
   let resolve, reject;
@@ -39,17 +37,16 @@ function backgroundContext(options = {}) {
       async get(id){return options.activeTab?.id === id ? options.activeTab : {id,url:'https://example.com/'};}
     }
   };
-  const context = vm.createContext({
-    chrome, URL, AbortController, structuredClone,
-    console:{log(){},warn(){}},
-    setTimeout: options.setTimeout || setTimeout, clearTimeout,
+  const background = createBackground(chrome, {
     fetch: options.fetch || (async()=>{throw new Error('offline');}),
-    importScripts(file) { vm.runInContext(fs.readFileSync(path.join(__dirname,'../..',file),'utf8'),context); }
+    apiTimeoutMs: options.apiTimeoutMs
   });
-  vm.runInContext(fs.readFileSync(path.join(__dirname,'../../background.js'),'utf8'),context);
+  const scope = { TZC_SHARED: background.shared, ...background };
+  const names = Object.keys(scope);
   return {
-    data, context, listeners,
-    run: expression=>vm.runInContext(expression,context),
+    data, listeners, background,
+    // Evaluates internals by name so tests can reach worker functions directly.
+    run: expression => new Function(...names, `return (${expression})`)(...names.map(name => scope[name])),
     message: (msg,sender={})=>new Promise((resolve,reject)=>{
       try {
         const pending=listeners.message(msg,sender,resolve);

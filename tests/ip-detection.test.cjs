@@ -14,7 +14,7 @@ test('concurrent refresh callers share the successful result', async () => {
 
 test('timed-out primary falls back instead of blocking all updates', async () => {
   const bg=backgroundContext({
-    setTimeout:fn=>setTimeout(fn,1),
+    apiTimeoutMs:1,
     fetch:async(url,{signal}={})=>{
       if(url.includes('ipwho')) {
         return new Promise((resolve,reject)=>signal?.addEventListener('abort',()=>reject(new Error('aborted'))));

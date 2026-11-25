@@ -1,14 +1,15 @@
-const fs=require('node:fs');
-const path=require('node:path');
-const vm=require('node:vm');
+const { createPopup } = require('../../src/popup/main.ts');
+const { createOptions } = require('../../src/options/main.ts');
 
 async function uiContext(file='popup.js', options={}) {
   const elements=new Map();
   const element=id=>{
     if(!elements.has(id)) elements.set(id,{
-      value:'',textContent:'',style:{},hidden:false,disabled:false,children:[],listeners:{},
+      value:'',textContent:'',className:'',style:{},hidden:false,disabled:false,children:[],listeners:{},
       addEventListener(name,fn){this.listeners[name]=fn;},
+      append(...children){this.children.push(...children);},
       appendChild(child){this.children.push(child);},
+      replaceChildren(...children){this.children=[...children];},
       setAttribute(){}
     });
     return elements.get(id);
@@ -31,8 +32,9 @@ async function uiContext(file='popup.js', options={}) {
     },
     tabs:{async query(){return [{id:1,url:'https://example.com'}];},async reload(id){reloads.push(id);}}
   };
-  const context=vm.createContext({document:{getElementById:element,createElement:()=>element(Symbol())},chrome,console});
-  vm.runInContext(fs.readFileSync(path.join(__dirname,'../..',file),'utf8'),context);
+  const document={getElementById:element,createElement:()=>element(Symbol())};
+  const create=file.startsWith('options')?createOptions:createPopup;
+  create({document,chrome}).start();
   const flush=()=>new Promise(resolve=>setImmediate(resolve));
   await flush();
   return {element,status,calls,reloads,openedOptions,flush,fail:()=>{fail=true;},transportError:()=>{transportError=true;}};
