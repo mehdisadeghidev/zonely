@@ -1,6 +1,6 @@
 {
   "name": "zonely",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "private": true,
   "type": "module",
   "description": "Automatically changes browser timezone to match your IP's location.",
