@@ -11,12 +11,10 @@ per-site and per-tab control over when it does.
 ## Features
 
 - **Auto by IP** — detects your location timezone via `ipwho.is`, falling back to `freeipapi.com`
-- **Per-site rules** — `Do not spoof`, `Fixed timezone`, `Auto by IP`
-- **Per-tab overrides** — session-scoped, can bypass exclusions
+- **Rules** — `Do not spoof`, `Fixed timezone`, `Auto by IP` per site, with wildcard patterns
+- **Per-tab overrides** — session-scoped, can bypass rules
 - **Default mode** — `Auto by IP`, `Fixed timezone` or `Do not spoof` for every site without a rule
-- **Excluded domains** — wildcard support (`*.example.com`)
 - **Stable in-tab behavior** — a confirmed auto timezone stays locked for the tab's lifetime
-- **Protected domains by default** — Google/Gemini hosts keep the real system timezone so uploads and auth keep working
 
 ## Install
 
@@ -39,12 +37,11 @@ Then load `dist/` as an unpacked extension.
 Highest priority first:
 
 1. Per-tab override
-2. Per-site rule (most specific matching pattern wins)
-3. Exclusion
-4. Default mode (`auto`, `fixed` + timezone, or `disable`)
+2. Rule (most specific matching pattern wins)
+3. Default mode (`auto`, `fixed` + timezone, or `disable`)
 
-A per-tab override can override anything; a site rule outranks an exclusion, so
-an excluded host with its own rule follows that rule.
+A per-tab override can override anything. Use a `Do not spoof` rule to keep a
+site on the real system timezone.
 `*.example.com` matches subdomains only — add the apex `example.com` separately.
 
 **Auto locks:** a detected timezone is locked for the tab's lifetime, including
@@ -60,12 +57,6 @@ the popup forces a new lookup.
 **Editing rules:** `Auto by IP` is an explicit rule; `Use inherited policy` removes
 the exact site rule. Options-page changes require page reloads.
 
-### Protected domains
-
-Spoofing is off by default on hosts where a fake clock breaks things:
-`*.google.com`, `gemini.google.com`, `*.googleapis.com`, `upload.googleapis.com`,
-`*.gstatic.com`, `accounts.google.com`.
-
 ## UI
 
 **Popup** — status only: current IP/location/timezone, current host, effective
@@ -74,7 +65,7 @@ internal, Web Store and other non-HTTP(S) pages; IP refresh and Options stay
 available. Tab overrides are no longer editable here — Options manages site rules
 only.
 
-**Options** — set the default mode, manage excluded domains and per-site rules
+**Options** — set the default mode and manage rules
 (comma-separated patterns are accepted).
 
 ## Storage

@@ -63,21 +63,9 @@ export function createOptions({ document: doc, chrome: api }: OptionsEnv = { doc
     const settings = await loadSettings();
     if (!settings) return;
 
-    const excludeList = $("exclude-list");
     const rulesList = $("rules-list");
-    excludeList.replaceChildren();
     rulesList.replaceChildren();
     renderDefault(settings);
-
-    for (const pattern of settings.excludedDomains) {
-      excludeList.append(
-        createListItem(pattern, async () => {
-          settings.excludedDomains = settings.excludedDomains.filter((entry) => entry !== pattern);
-          await saveSettings(settings);
-          await render();
-        })
-      );
-    }
 
     for (const [pattern, rule] of Object.entries(settings.siteRules)) {
       const text = `${pattern} -> ${rule.mode}${rule.timezone ? ` (${rule.timezone})` : ""}`;
@@ -113,27 +101,12 @@ export function createOptions({ document: doc, chrome: api }: OptionsEnv = { doc
     $("status-message").textContent = "Saved. Reload affected pages to apply.";
   }
 
-  function addExcludedPattern(): () => Promise<void> {
-    return async () => {
-      const input = $<HTMLInputElement>("exclude-input");
-      const value = input.value.trim().toLowerCase();
-      if (!value) return;
-      const settings = await loadSettings();
-      if (!settings) return;
-      if (!settings.excludedDomains.includes(value)) settings.excludedDomains.push(value);
-      await saveSettings(settings);
-      input.value = "";
-      await render();
-    };
-  }
-
   function splitPatterns(value: string): string[] {
     const patterns = value.split(",").map((entry) => entry.trim().toLowerCase()).filter(Boolean);
     return [...new Set(patterns)];
   }
 
   function start(): void {
-    onAction("add-exclude-btn", addExcludedPattern());
     $<HTMLSelectElement>("default-mode").addEventListener("change", () => {
       toggleDefaultTimezone();
       saveDefault().catch((error) => showError(error as Error));

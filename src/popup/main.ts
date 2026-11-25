@@ -10,7 +10,6 @@ const MODE_LABELS: Record<string, string> = { auto: "Auto by IP", fixed: "Fixed 
 const SOURCE_LABELS: Record<string, string> = {
   tabOverride: "Tab override",
   siteRule: "Site rule",
-  excluded: "Excluded site",
   default: "Default policy"
 };
 

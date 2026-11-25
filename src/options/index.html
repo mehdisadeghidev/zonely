@@ -12,7 +12,7 @@
 
     <section class="card">
       <h2>Default behavior</h2>
-      <p class="hint">What Zonely does on any site that has no rule of its own. Exclusions and per-site rules below always take priority.</p>
+      <p class="hint">What Zonely does on any site with no rule of its own. Rules below take priority.</p>
       <label class="field-label" for="default-mode">Mode</label>
       <select id="default-mode">
         <option value="auto">Auto by IP</option>
@@ -24,18 +24,8 @@
     </section>
 
     <section class="card">
-      <h2>Excluded Sites</h2>
-      <p class="hint">Spoofing is disabled here and the system timezone is used, unless the site has its own rule below.</p>
-      <div class="row">
-        <input id="exclude-input" type="text" placeholder="*.example.com or app.example.com">
-        <button id="add-exclude-btn">Add</button>
-      </div>
-      <ul id="exclude-list" class="list"></ul>
-    </section>
-
-    <section class="card">
-      <h2>Per-site Rules</h2>
-      <p class="hint">Mode priority: Tab rule &gt; Site rule &gt; Exclusion &gt; Default. Comma separate several patterns. Reload affected pages after saving.</p>
+      <h2>Rules</h2>
+      <p class="hint">Mode priority: Tab rule &gt; Rule &gt; Default. Comma separate several patterns. Pick <em>Do not spoof</em> to leave a site alone. Reload affected pages after saving.</p>
       <div class="row">
         <input id="rule-pattern" type="text" placeholder="example.com, *.example.com">
         <select id="rule-mode">
