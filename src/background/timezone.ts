@@ -4,7 +4,7 @@ import type { ChromeApi } from "./chrome.ts";
 
 export const SYSTEM_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-const CHECK_COOLDOWN = 10_000;
+const CHECK_TTL = 5 * 60_000;
 const API_TIMEOUT = 5_000;
 
 interface IpProvider {
@@ -49,7 +49,6 @@ export interface RuntimeServiceOptions {
 
 export function createRuntimeService(api: ChromeApi, { fetch: fetchImpl = fetch, apiTimeoutMs = API_TIMEOUT }: RuntimeServiceOptions = {}): RuntimeService {
   let updatePromise: Promise<boolean> | null = null;
-  let lastCheckTime = 0;
 
   function getRuntimeState(): Promise<RuntimeState> {
     return api.storage.local.get(["timezone", "ip", "country", "city", "lastUpdate"]) as Promise<RuntimeState>;
@@ -57,10 +56,13 @@ export function createRuntimeService(api: ChromeApi, { fetch: fetchImpl = fetch,
 
   async function updateTimezone(force = false): Promise<boolean> {
     if (updatePromise) return updatePromise;
-    const now = Date.now();
-    if (!force && now - lastCheckTime < CHECK_COOLDOWN) return false;
-
-    lastCheckTime = now;
+    // ponytail: freshness is the stored lastUpdate, so restarts and navigations
+    // reuse it. A changed IP is only seen after CHECK_TTL; upgrade path is a
+    // network-change signal instead of a periodic poll.
+    if (!force) {
+      const stored = await getRuntimeState();
+      if (isValidTimezone(stored.timezone) && Date.now() - Number(stored.lastUpdate || 0) < CHECK_TTL) return false;
+    }
     updatePromise = (async () => {
       for (const provider of APIS) {
         const controller = new AbortController();

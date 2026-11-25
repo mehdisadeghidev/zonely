@@ -26,7 +26,7 @@ export function createBackground(api: ChromeApi, options: RuntimeServiceOptions 
   const pages = createPageConfigService({ settings: settingsStore, tabState, runtime });
 
   async function initialize(): Promise<void> {
-    api.alarms.create("check-ip-periodic", { periodInMinutes: 1 });
+    api.alarms.create("check-ip-periodic", { periodInMinutes: 5 });
     await settingsStore.get();
     await runtime.updateTimezone(true);
   }

@@ -3,6 +3,37 @@ const assert = require('node:assert/strict');
 const { backgroundContext, deferred } = require('./helpers/background-context.cjs');
 const response = data=>({ok:true,json:async()=>data});
 
+test('fresh stored lookup is reused without a network request', async () => {
+  let calls = 0;
+  const bg = backgroundContext({
+    data: { sync: { settings: { defaultMode: 'auto', defaultTimezone: '', excludedDomains: [], siteRules: {} } }, local: { timezone: 'Asia/Tokyo', ip: '203.0.113.9', lastUpdate: Date.now() }, session: {} },
+    fetch: async () => { calls++; return response({ timezone: { id: 'UTC' }, ip: '203.0.113.10' }); }
+  });
+  assert.equal(await bg.run('updateTimezone()'), false);
+  assert.equal(calls, 0);
+  assert.equal(bg.data.local.timezone, 'Asia/Tokyo');
+});
+
+test('forced refresh bypasses a fresh stored lookup', async () => {
+  const bg = backgroundContext({
+    data: { sync: { settings: { defaultMode: 'auto', defaultTimezone: '', excludedDomains: [], siteRules: {} } }, local: { timezone: 'Asia/Tokyo', ip: '203.0.113.9', lastUpdate: Date.now() }, session: {} },
+    fetch: async () => response({ timezone: { id: 'UTC' }, ip: '203.0.113.10' })
+  });
+  assert.equal(await bg.run('updateTimezone(true)'), true);
+  assert.equal(bg.data.local.timezone, 'UTC');
+});
+
+test('stale stored lookup is refreshed', async () => {
+  let calls = 0;
+  const bg = backgroundContext({
+    data: { sync: { settings: { defaultMode: 'auto', defaultTimezone: '', excludedDomains: [], siteRules: {} } }, local: { timezone: 'Asia/Tokyo', ip: '203.0.113.9', lastUpdate: 1 }, session: {} },
+    fetch: async () => { calls++; return response({ timezone: { id: 'UTC' }, ip: '203.0.113.10' }); }
+  });
+  assert.equal(await bg.run('updateTimezone()'), true);
+  assert.equal(calls, 1);
+  assert.equal(bg.data.local.timezone, 'UTC');
+});
+
 test('concurrent refresh callers share the successful result', async () => {
   const gate=deferred();
   const bg=backgroundContext({fetch:()=>gate.promise});
